@@ -8,15 +8,18 @@ use Controller\FilmeController;
 header("Content-Type: application/json; charset=UTF-8");
 
 $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+$parts = array_values(array_filter(explode('/', $path)));
 
-$parts = array_values(array_filter(explode("/", $path)));
-
-$resource = $parts[0] ?? null;
+$resource = !empty($parts) ? strtolower($parts[0]) : "filmes";
 $id = $parts[1] ?? null;
 
 if ($resource !== "filmes") {
     http_response_code(404);
-    echo json_encode(["error" => "Rota não encontrada!"]);
+    echo json_encode([
+        "error" => "Rota não encontrada!",
+        "rota_recebida" => "/" . implode("/", $parts),
+        "dica" => "Acesse http://localhost:3000/filmes"
+    ]);
     exit;
 }
 
@@ -28,5 +31,5 @@ try {
 } catch (\Throwable $error) {
     error_log($error->getMessage());
     http_response_code(500);
-    echo json_encode(["error" => "Erro interno no servidor."]);
+    echo json_encode(["error" => "Erro interno no servidor: " . $error->getMessage()]);
 }
