@@ -2,24 +2,24 @@
 
 namespace Controller;
 
-use Model\FilmeModel;
+use Model\CategoriaModel;
 use Exception;
 use OpenApi\Attributes as OA;
 
 #[OA\Get(
-    path: "/filmes",
-    summary: "Lista todos os filmes",
+    path: "/categorias",
+    summary: "Lista todas as categorias",
     responses: [
         new OA\Response(
             response: 200,
             description: "Sucesso",
-            content: new OA\JsonContent(type: "array", items: new OA\Items(ref: "#/components/schemas/Filme"))
+            content: new OA\JsonContent(type: "array", items: new OA\Items(ref: "#/components/schemas/Categoria"))
         )
     ]
 )]
-class FilmeController
+class CategoriaController
 {
-    public function __construct(private FilmeModel $filmeModel)
+    public function __construct(private CategoriaModel $categoriaModel)
     {
     }
 
@@ -33,7 +33,6 @@ class FilmeController
                 "POST" => $this->create(),
                 default => $this->methodNotAllowed(["GET", "POST"])
             };
-
             return;
         }
 
@@ -47,10 +46,10 @@ class FilmeController
     private function index(): void
     {
         try {
-            $filmes = $this->filmeModel->readAll();
+            $categorias = $this->categoriaModel->readAll();
 
             http_response_code(200);
-            echo json_encode($filmes, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+            echo json_encode($categorias, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
         } catch (Exception $error) {
             http_response_code(500);
             echo json_encode(["error" => $error->getMessage()], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
@@ -60,16 +59,16 @@ class FilmeController
     private function show(int $id): void
     {
         try {
-            $filme = $this->filmeModel->readById($id);
+            $categoria = $this->categoriaModel->readById($id);
 
-            if ($filme === null) {
+            if ($categoria === null) {
                 http_response_code(404);
-                echo json_encode(["error" => "Filme não encontrado!"], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+                echo json_encode(["error" => "Categoria não encontrada!"], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
                 return;
             }
 
             http_response_code(200);
-            echo json_encode($filme, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+            echo json_encode($categoria, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
         } catch (Exception $error) {
             http_response_code(500);
             echo json_encode(["error" => $error->getMessage()], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
@@ -79,25 +78,19 @@ class FilmeController
     private function create(): void
     {
         $data = $this->readInput();
-        $errors = $this->validate($data);
 
-        if (!empty($errors)) {
+        if (empty($data["nome"])) {
             http_response_code(422);
-            echo json_encode(["errors" => $errors], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+            echo json_encode(["errors" => ["O campo 'nome' é obrigatório."]], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
             return;
         }
 
         try {
-            $id = $this->filmeModel->create(
-                $data["titulo"],
-                $data["descricao"] ?? "",
-                (int)$data["id_categoria"]
-            );
-
-            $filme = $this->filmeModel->readById($id);
+            $id = $this->categoriaModel->create($data["nome"]);
+            $categoria = $this->categoriaModel->readById($id);
 
             http_response_code(201);
-            echo json_encode($filme, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+            echo json_encode($categoria, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
         } catch (Exception $error) {
             http_response_code(500);
             echo json_encode(["error" => $error->getMessage()], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
@@ -107,16 +100,15 @@ class FilmeController
     private function delete(int $id): void
     {
         try {
-            $filme = $this->filmeModel->readById($id);
+            $categoria = $this->categoriaModel->readById($id);
 
-            if ($filme === null) {
+            if ($categoria === null) {
                 http_response_code(404);
-                echo json_encode(["error" => "Filme não encontrado!"], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+                echo json_encode(["error" => "Categoria não encontrada!"], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
                 return;
             }
 
-            $this->filmeModel->delete($id);
-
+            $this->categoriaModel->delete($id);
             http_response_code(204);
         } catch (Exception $error) {
             http_response_code(500);
@@ -130,21 +122,6 @@ class FilmeController
         $data = json_decode($body, true);
 
         return is_array($data) ? $data : [];
-    }
-
-    private function validate(array $data): array
-    {
-        $errors = [];
-
-        if (empty($data["titulo"])) {
-            $errors[] = "O campo 'titulo' é obrigatório.";
-        }
-
-        if (empty($data["id_categoria"])) {
-            $errors[] = "O campo 'id_categoria' é obrigatório.";
-        }
-
-        return $errors;
     }
 
     private function methodNotAllowed(array $allowed): void
